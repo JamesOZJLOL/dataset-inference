@@ -66,7 +66,6 @@ def epoch(args, loader, model, teacher = None, lr_schedule = None, epoch_i = Non
         l1_norm = sum(p.abs().sum()
                   for p in model.parameters())
  
-        loss = loss + l1_lambda * l1_norm
         if teacher is not None:
             with torch.no_grad():
                 t_p = teacher(X).detach()
