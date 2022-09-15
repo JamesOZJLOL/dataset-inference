@@ -61,17 +61,29 @@ def epoch(args, loader, model, teacher = None, lr_schedule = None, epoch_i = Non
         X,y = batch[0].to(args.device), batch[1].to(args.device)
         yp = model(X)
         
+        #Replaces pow(2.0) with abs() for L1 regularization
+        l1_lambda = 0.001
+        l1_norm = sum(p.abs().sum()
+                  for p in model.parameters())
+ 
+        loss = loss + l1_lambda * l1_norm
         if teacher is not None:
             with torch.no_grad():
                 t_p = teacher(X).detach()
                 y = t_p.max(1)[1]
             if args.mode in ["extract-label", "fine-tune"]:
                 loss = nn.CrossEntropyLoss()(yp,t_p.max(1)[1])
+                #Regularization 
+                loss = loss + l1_lambda * l1_norm
             else:
                 loss = criterion_kl(F.log_softmax(yp/T, dim=1), F.softmax(t_p/T, dim=1))*(alpha * T * T)
+                #Regularization 
+                loss = loss + l1_lambda * l1_norm
         
         else:
             loss = nn.CrossEntropyLoss()(yp,y)
+            #Regularization 
+            loss = loss + l1_lambda * l1_norm
 
         if opt:
             lr = lr_schedule(epoch_i + (i+1)/len(loader))
